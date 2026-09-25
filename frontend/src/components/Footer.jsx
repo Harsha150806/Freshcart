@@ -1,70 +1,83 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
 
-const Footer = () => (
-  <footer className="footer">
-    <div className="container">
-      <div className="footer__grid">
-        {/* Brand */}
-        <div>
-          <div className="footer__logo">🛒 Fresh<span>Cart</span></div>
-          <p className="footer__desc">Your one-stop destination for fresh groceries delivered right to your doorstep. Quality products, affordable prices, and lightning-fast delivery.</p>
-          <div className="footer__social">
-            <button className="social-btn" title="Facebook">📘</button>
-            <button className="social-btn" title="Instagram">📸</button>
-            <button className="social-btn" title="Twitter">🐦</button>
-            <button className="social-btn" title="YouTube">▶️</button>
-          </div>
-        </div>
-        {/* Quick Links */}
-        <div>
-          <h4 className="footer__title">Quick Links</h4>
-          <ul className="footer__links">
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/categories">Categories</Link></li>
-            <li><Link to="/products">All Products</Link></li>
-            <li><Link to="/offers">Offers & Deals</Link></li>
-            <li><Link to="/about">About Us</Link></li>
-          </ul>
-        </div>
-        {/* Customer */}
-        <div>
-          <h4 className="footer__title">Customer</h4>
-          <ul className="footer__links">
-            <li><Link to="/profile">My Account</Link></li>
-            <li><Link to="/orders">My Orders</Link></li>
-            <li><Link to="/cart">Shopping Cart</Link></li>
-            <li><Link to="/contact">Customer Support</Link></li>
-            <li><a href="#">Return Policy</a></li>
-          </ul>
-        </div>
-        {/* Info */}
-        <div>
-          <h4 className="footer__title">Information</h4>
-          <ul className="footer__links">
-            <li><a href="#">Privacy Policy</a></li>
-            <li><a href="#">Terms & Conditions</a></li>
-            <li><a href="#">Delivery Information</a></li>
-            <li><a href="#">Payment Methods</a></li>
-            <li><Link to="/contact">Contact Us</Link></li>
-          </ul>
-          <div style={{ marginTop: "1.25rem" }}>
-            <p style={{ fontSize: "0.8rem", color: "var(--gray-500)", marginBottom: "0.4rem" }}>We Accept:</p>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              {["💳 Visa", "💳 Mastercard", "📱 UPI", "🏦 NetBanking"].map(m => (
-                <span key={m} style={{ background: "var(--gray-700)", padding: "3px 8px", borderRadius: 4, fontSize: "0.72rem", color: "var(--gray-300)" }}>{m}</span>
+const Footer = () => {
+  return (
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-grid">
+          {/* Brand */}
+          <div>
+            <div className="footer-brand-name">
+              🛒 Fresh<span>Cart</span>
+            </div>
+            <p className="footer-description">
+              Your one-stop online grocery store. Fresh produce, dairy, bakery, and
+              everything you need delivered right to your doorstep.
+            </p>
+            <div className="footer-social">
+              {['📘', '🐦', '📸', '▶️'].map((icon, i) => (
+                <button key={i} className="social-btn" title="Social">{icon}</button>
               ))}
             </div>
           </div>
+
+          {/* Quick Links */}
+          <div>
+            <p className="footer-heading">Quick Links</p>
+            <div className="footer-links">
+              <Link to="/">🏠 Home</Link>
+              <Link to="/products">🛒 Shop Now</Link>
+              <Link to="/offers">🏷️ Today's Offers</Link>
+              <Link to="/orders">📦 Track Orders</Link>
+              <Link to="/contact">📞 Contact Us</Link>
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <p className="footer-heading">Categories</p>
+            <div className="footer-links">
+              <Link to="/products?category=Fruits & Vegetables">🥦 Fruits & Veggies</Link>
+              <Link to="/products?category=Dairy & Eggs">🥛 Dairy & Eggs</Link>
+              <Link to="/products?category=Bakery">🍞 Bakery</Link>
+              <Link to="/products?category=Meat & Seafood">🥩 Meat & Seafood</Link>
+              <Link to="/products?category=Beverages">🧃 Beverages</Link>
+            </div>
+          </div>
+
+          {/* Newsletter */}
+          <div>
+            <p className="footer-heading">Stay Updated</p>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem', lineHeight: 1.65 }}>
+              Subscribe for exclusive deals, seasonal offers, and grocery tips.
+            </p>
+            <div className="footer-newsletter">
+              <input type="email" placeholder="Enter your email" />
+              <button className="btn btn-primary btn-sm btn-block">Subscribe 📬</button>
+            </div>
+            <div style={{ marginTop: '1.25rem' }}>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem' }}>
+                DELIVERY HOURS
+              </p>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                Mon–Sat: 7 AM – 9 PM<br />
+                Sunday: 9 AM – 6 PM
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <p>© 2024 FreshCart. All rights reserved. Built with ❤️ for college project.</p>
+          <div className="footer-badges">
+            <span className="footer-badge">🔒 SSL Secured</span>
+            <span className="footer-badge">💳 Secure Payment</span>
+            <span className="footer-badge">🚚 Fast Delivery</span>
+          </div>
         </div>
       </div>
-
-      <div className="footer__bottom">
-        <span>© 2024 FreshCart. All rights reserved.</span>
-        <span>🌿 Made with love for fresh groceries • Hyderabad, Telangana</span>
-        <span style={{ color: "var(--primary-light)" }}>🚀 College Project – MERN Stack</span>
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 export default Footer;

@@ -1,74 +1,105 @@
-﻿import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { cartAPI } from "../services/api";
-import { useAuth } from "./AuthContext";
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
+  const [cart, setCart] = useState({ items: [] });
+  const [cartLoading, setCartLoading] = useState(false);
   const { user } = useAuth();
-  const [cart, setCart] = useState({ items: [], totalAmount: 0 });
-  const [loading, setLoading] = useState(false);
-
-  // Delivery fee logic
-  const DELIVERY_FEE = cart.totalAmount >= 499 ? 0 : 40;
-  const cartCount = cart.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
 
   const fetchCart = useCallback(async () => {
-    if (!user) { setCart({ items: [], totalAmount: 0 }); return; }
+    if (!user) {
+      setCart({ items: [] });
+      return;
+    }
     try {
-      setLoading(true);
-      const res = await cartAPI.get();
-      setCart(res.data);
-    } catch { setCart({ items: [], totalAmount: 0 }); }
-    finally { setLoading(false); }
+      setCartLoading(true);
+      const { data } = await api.get('/cart');
+      setCart(data);
+    } catch (err) {
+      console.error('Failed to fetch cart:', err.message);
+    } finally {
+      setCartLoading(false);
+    }
   }, [user]);
 
-  useEffect(() => { fetchCart(); }, [fetchCart]);
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const addToCart = async (productId, quantity = 1) => {
-    if (!user) return { error: "Please login to add items to cart" };
+    if (!user) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
     try {
-      const res = await cartAPI.add({ productId, quantity });
-      setCart(res.data);
-      return { success: true };
+      const { data } = await api.post('/cart', { productId, quantity });
+      setCart(data);
+      toast.success('Added to cart!');
     } catch (err) {
-      return { error: err.response?.data?.message || "Failed to add to cart" };
+      toast.error(err.response?.data?.message || 'Failed to add to cart');
     }
   };
 
-  const updateQuantity = async (productId, quantity) => {
+  const updateQuantity = async (itemId, quantity) => {
     try {
-      const res = await cartAPI.update(productId, { quantity });
-      setCart(res.data);
-    } catch (err) { console.error(err); }
+      const { data } = await api.put(`/cart/${itemId}`, { quantity });
+      setCart(data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update quantity');
+    }
   };
 
-  const removeFromCart = async (productId) => {
+  const removeFromCart = async (itemId) => {
     try {
-      const res = await cartAPI.remove(productId);
-      setCart(res.data);
-    } catch (err) { console.error(err); }
+      const { data } = await api.delete(`/cart/${itemId}`);
+      setCart(data);
+      toast.success('Item removed from cart');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove item');
+    }
   };
 
   const clearCart = async () => {
     try {
-      await cartAPI.clear();
-      setCart({ items: [], totalAmount: 0 });
-    } catch (err) { console.error(err); }
+      await api.delete('/cart');
+      setCart({ items: [] });
+    } catch (err) {
+      console.error('Failed to clear cart:', err.message);
+    }
   };
 
+  const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+  const cartTotal = cart?.items?.reduce(
+    (sum, item) => sum + (item.price || item.product?.price || 0) * item.quantity,
+    0
+  ) || 0;
+
   return (
-    <CartContext.Provider value={{
-      cart, cartCount, loading, DELIVERY_FEE,
-      fetchCart, addToCart, updateQuantity, removeFromCart, clearCart
-    }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        cartCount,
+        cartTotal,
+        cartLoading,
+        addToCart,
+        updateQuantity,
+        removeFromCart,
+        clearCart,
+        fetchCart,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
 };
 
 export const useCart = () => {
-  const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
-  return ctx;
+  const context = useContext(CartContext);
+  if (!context) throw new Error('useCart must be used within CartProvider');
+  return context;
 };

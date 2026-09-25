@@ -1,100 +1,202 @@
-﻿import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+
+const CATEGORIES = [
+  'Fruits & Vegetables',
+  'Dairy & Eggs',
+  'Meat & Seafood',
+  'Bakery',
+  'Beverages',
+  'Snacks',
+  'Pantry',
+  'Frozen Foods',
+  'Personal Care',
+  'Household',
+];
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [dropOpen, setDropOpen] = useState(false);
+  const location = useLocation();
+  const [search, setSearch] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (search.trim()) {
       navigate(`/products?search=${encodeURIComponent(search.trim())}`);
-      setSearch("");
+      setSearch('');
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-    setDropOpen(false);
-  };
+  const isActive = (path) => location.pathname === path;
+
+  const getInitials = (name) =>
+    name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'U';
 
   return (
     <nav className="navbar">
-      <div className="container">
-        <div className="navbar__inner">
-          {/* Logo */}
-          <Link to="/" className="navbar__logo">
-            🛒 Fresh<span>Cart</span>
+      <div className="container navbar-inner">
+        {/* Logo */}
+        <Link to="/" className="navbar-logo">
+          <div className="navbar-logo-icon">🛒</div>
+          Fresh<span>Cart</span>
+        </Link>
+
+        {/* Search */}
+        <form className="navbar-search" onSubmit={handleSearch}>
+          <span className="navbar-search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search groceries..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button type="submit" className="navbar-search-btn">Search</button>
+        </form>
+
+        {/* Links */}
+        <div className="navbar-links">
+          <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>Home</Link>
+          <Link to="/products" className={`nav-link ${isActive('/products') ? 'active' : ''}`}>Shop</Link>
+          <Link to="/categories" className={`nav-link ${isActive('/categories') ? 'active' : ''}`}>Categories</Link>
+          <Link to="/offers" className={`nav-link ${location.pathname === '/offers' ? 'active' : ''}`}>Offers</Link>
+          <Link to="/contact" className={`nav-link ${isActive('/contact') ? 'active' : ''}`}>Contact</Link>
+
+          {/* Cart */}
+          <Link to="/cart" className="nav-cart-btn" style={{ position: 'relative' }}>
+            🛍️ Cart
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </Link>
 
-          {/* Navigation Links */}
-          <div className={`navbar__links ${menuOpen ? "open" : ""}`}>
-            <NavLink to="/" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Home</NavLink>
-            <NavLink to="/categories" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Categories</NavLink>
-            <NavLink to="/products" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Products</NavLink>
-            <NavLink to="/offers" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>🔥 Offers</NavLink>
-            <NavLink to="/about" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>About</NavLink>
-            <NavLink to="/contact" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>Contact</NavLink>
-            {user?.isAdmin && (
-              <NavLink to="/admin" className={({isActive}) => `navbar__link ${isActive ? "active" : ""}`} onClick={() => setMenuOpen(false)}>⚙️ Admin</NavLink>
-            )}
-          </div>
+          {/* User menu */}
+          {user ? (
+            <div className="nav-user-menu" ref={dropdownRef}>
+              <button
+                className="nav-user-btn"
+                onClick={() => setDropdownOpen((v) => !v)}
+              >
+                <div className="nav-user-avatar">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} />
+                  ) : (
+                    getInitials(user.name)
+                  )}
+                </div>
+                {user.name.split(' ')[0]}
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>▼</span>
+              </button>
+              {dropdownOpen && (
+                <div className="nav-dropdown">
+                  <Link to="/profile" onClick={() => setDropdownOpen(false)}>
+                    👤 My Profile
+                  </Link>
+                  <Link to="/orders" onClick={() => setDropdownOpen(false)}>
+                    📦 My Orders
+                  </Link>
+                  <Link to="/cart" onClick={() => setDropdownOpen(false)}>
+                    🛍️ My Cart
+                  </Link>
+                  <hr />
+                  <button
+                    className="logout-btn"
+                    onClick={() => {
+                      logout();
+                      setDropdownOpen(false);
+                      navigate('/');
+                    }}
+                  >
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Link to="/login" className="btn btn-outline btn-sm">Login</Link>
+              <Link to="/register" className="btn btn-primary btn-sm">Sign Up</Link>
+            </div>
+          )}
+        </div>
 
-          {/* Right side */}
-          <div className="navbar__right">
-            {/* Search */}
-            <form className="navbar__search" onSubmit={handleSearch}>
-              <span>🔍</span>
+        {/* Mobile hamburger */}
+        <button className="hamburger" onClick={() => setMobileOpen(!mobileOpen)}>
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 'var(--navbar-height)',
+            left: 0,
+            right: 0,
+            background: 'white',
+            borderTop: '1px solid var(--border)',
+            padding: '1rem',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 999,
+            animation: 'slideDown 0.15s ease',
+          }}
+        >
+          <form onSubmit={handleSearch} style={{ marginBottom: '0.75rem' }}>
+            <div style={{ position: 'relative' }}>
               <input
+                className="form-input"
                 type="text"
                 placeholder="Search groceries..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search products"
               />
-            </form>
-
-            {/* Cart */}
-            <button className="cart-btn" onClick={() => navigate("/cart")} aria-label="Shopping cart">
-              🛒
-              {cartCount > 0 && <span className="cart-badge">{cartCount > 99 ? "99+" : cartCount}</span>}
-            </button>
-
-            {/* Auth */}
+            </div>
+          </form>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <Link to="/" className="nav-link" onClick={() => setMobileOpen(false)}>🏠 Home</Link>
+            <Link to="/products" className="nav-link" onClick={() => setMobileOpen(false)}>🛒 Shop</Link>
+            <Link to="/categories" className="nav-link" onClick={() => setMobileOpen(false)}>📁 Categories</Link>
+            <Link to="/offers" className="nav-link" onClick={() => setMobileOpen(false)}>🏷️ Offers</Link>
+            <Link to="/contact" className="nav-link" onClick={() => setMobileOpen(false)}>📞 Contact</Link>
+            <Link to="/cart" className="nav-link" onClick={() => setMobileOpen(false)}>🛍️ Cart ({cartCount})</Link>
             {user ? (
-              <div style={{ position: "relative" }}>
+              <>
+                <Link to="/profile" className="nav-link" onClick={() => setMobileOpen(false)}>👤 Profile</Link>
+                <Link to="/orders" className="nav-link" onClick={() => setMobileOpen(false)}>📦 Orders</Link>
                 <button
-                  onClick={() => setDropOpen(!dropOpen)}
-                  style={{ background: "var(--primary)", color: "#fff", border: "none", borderRadius: "var(--radius-full)", padding: "0.45rem 1rem", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+                  className="nav-link"
+                  style={{ color: 'var(--danger)', textAlign: 'left' }}
+                  onClick={() => { logout(); setMobileOpen(false); navigate('/'); }}
                 >
-                  👤 {user.name.split(" ")[0]}
+                  🚪 Logout
                 </button>
-                {dropOpen && (
-                  <div style={{ position: "absolute", right: 0, top: "110%", background: "#fff", borderRadius: "var(--radius)", boxShadow: "var(--shadow-lg)", border: "1px solid var(--gray-200)", minWidth: 160, zIndex: 999 }}>
-                    <Link to="/profile" onClick={() => setDropOpen(false)} style={{ display: "block", padding: "0.75rem 1rem", fontSize: "0.88rem", color: "var(--gray-700)", borderBottom: "1px solid var(--gray-100)" }}>👤 My Profile</Link>
-                    <Link to="/orders" onClick={() => setDropOpen(false)} style={{ display: "block", padding: "0.75rem 1rem", fontSize: "0.88rem", color: "var(--gray-700)", borderBottom: "1px solid var(--gray-100)" }}>📦 My Orders</Link>
-                    <button onClick={handleLogout} style={{ display: "block", width: "100%", textAlign: "left", padding: "0.75rem 1rem", fontSize: "0.88rem", color: "var(--red)", background: "none", border: "none", cursor: "pointer" }}>🚪 Logout</button>
-                  </div>
-                )}
-              </div>
+              </>
             ) : (
-              <Link to="/login" className="btn btn-primary btn-sm">Login</Link>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <Link to="/login" className="btn btn-outline btn-sm" onClick={() => setMobileOpen(false)}>Login</Link>
+                <Link to="/register" className="btn btn-primary btn-sm" onClick={() => setMobileOpen(false)}>Sign Up</Link>
+              </div>
             )}
-
-            {/* Hamburger */}
-            <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
-              {menuOpen ? "✕" : "☰"}
-            </button>
           </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 };

@@ -1,53 +1,57 @@
-﻿import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import Home from './pages/Home';
+import Products from './pages/Products';
+import Categories from './pages/Categories';
+import Offers from './pages/Offers';
+import ProductDetail from './pages/ProductDetail';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import Contact from './pages/Contact';
 
-// Pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Products from "./pages/Products";
-import ProductDetails from "./pages/ProductDetails";
-import Categories from "./pages/Categories";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Address from "./pages/Address";
-import Payment from "./pages/Payment";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import Orders from "./pages/Orders";
-import Profile from "./pages/Profile";
-import Offers from "./pages/Offers";
-import Contact from "./pages/Contact";
-import About from "./pages/About";
-import Admin from "./pages/Admin";
-import NotFound from "./pages/NotFound";
+// Protected route wrapper
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="spinner-wrapper" style={{ minHeight: '60vh' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+  return user ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
   return (
-    <div className="app">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
-      <main className="main-content">
+      <main style={{ flex: 1 }}>
         <Routes>
+          {/* Public */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/categories" element={<Categories />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/offers" element={<Offers />} />
-          <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
-          {/* Protected Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected */}
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-          <Route path="/address" element={<ProtectedRoute><Address /></ProtectedRoute>} />
-          <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
-          <Route path="/order-confirmation" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute adminOnly={true}><Admin /></ProtectedRoute>} />
-          <Route path="*" element={<NotFound />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
@@ -56,3 +60,5 @@ function App() {
 }
 
 export default App;
+
+
