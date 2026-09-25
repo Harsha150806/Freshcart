@@ -1,240 +1,228 @@
-﻿import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { productAPI, reviewAPI, offerAPI } from "../services/api";
-import ProductCard from "../components/ProductCard";
-import CategoryCard from "../components/CategoryCard";
-import ReviewCard from "../components/ReviewCard";
-import OfferCard from "../components/OfferCard";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import ProductCard from '../components/ProductCard';
 
-const CATEGORIES = ["Fruits","Vegetables","Dairy","Bakery","Beverages","Snacks","Rice & Grains","Personal Care","Household"];
+const CATEGORIES = [
+  { label: 'All', icon: '🛒' },
+  { label: 'Fruits & Vegetables', icon: '🥦' },
+  { label: 'Dairy & Eggs', icon: '🥛' },
+  { label: 'Meat & Seafood', icon: '🥩' },
+  { label: 'Bakery', icon: '🍞' },
+  { label: 'Beverages', icon: '🧃' },
+  { label: 'Snacks', icon: '🍿' },
+  { label: 'Pantry', icon: '🫙' },
+  { label: 'Frozen Foods', icon: '🧊' },
+  { label: 'Personal Care', icon: '🧴' },
+  { label: 'Household', icon: '🏠' },
+];
 
 const Home = () => {
   const navigate = useNavigate();
-  const [featured, setFeatured] = useState([]);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [offers, setOffers] = useState([]);
-  const [search, setSearch] = useState("");
-  const [searchCat, setSearchCat] = useState("All");
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [offerProducts, setOfferProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchProducts = async () => {
       try {
-        const [fp, bs, off] = await Promise.all([
-          productAPI.getFeatured(),
-          productAPI.getBestSellers(),
-          offerAPI.getAll(),
+        const [featured, offers] = await Promise.all([
+          api.get('/products?isFeatured=true&limit=8'),
+          api.get('/products?isOffer=true&limit=8'),
         ]);
-        setFeatured(fp.data);
-        setBestSellers(bs.data);
-        setOffers(off.data);
-        // Fetch some reviews
-        if (fp.data.length > 0) {
-          const rv = await reviewAPI.getByProduct(fp.data[0]._id);
-          setReviews(rv.data.slice(0, 3));
-        }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
+        setFeaturedProducts(featured.data.products);
+        setOfferProducts(offers.data.products);
+      } catch (err) {
+        console.error('Failed to fetch products:', err.message);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchAll();
+    fetchProducts();
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (search.trim()) params.set("search", search.trim());
-    if (searchCat !== "All") params.set("category", searchCat);
-    navigate(`/products?${params.toString()}`);
+    if (search.trim()) {
+      navigate(`/products?search=${encodeURIComponent(search.trim())}`);
+    }
   };
 
   return (
-    <div>
-      {/* ── Hero ── */}
-      <section className="hero">
-        <div className="container">
-          <div className="hero__inner">
-            <div>
-              <div className="hero__tag">🌿 100% Fresh Guaranteed</div>
-              <h1 className="hero__title">
-                Fresh Groceries<br />Delivered to <span>Your Door</span>
+    <div className="page-wrapper">
+      <div className="container">
+        {/* Hero */}
+        <section className="hero">
+          <div className="hero-blob hero-blob-1" />
+          <div className="hero-blob hero-blob-2" />
+          <div className="container">
+            <div className="hero-content">
+              <div className="hero-eyebrow">
+                <span>✅</span> Free delivery on orders above ₹500
+              </div>
+              <h1 className="hero-title">
+                Fresh Groceries<br />
+                <span className="highlight">Delivered Daily</span>
               </h1>
-              <p className="hero__subtitle">
-                Shop from thousands of fresh products — fruits, vegetables, dairy, and more.
-                Fast delivery in under 2 hours anywhere in the city.
+              <p className="hero-description">
+                Shop from 500+ fresh products sourced directly from local farms.
+                From crispy vegetables to creamy dairy — everything at your doorstep in hours.
               </p>
-              <div className="hero__actions">
-                <button className="btn btn-primary btn-lg" onClick={() => navigate("/products")}>🛒 Shop Now</button>
-                <button className="btn btn-secondary btn-lg" onClick={() => navigate("/offers")}>🔥 Today's Offers</button>
+              <div className="hero-actions">
+                <Link to="/products" className="btn btn-primary btn-lg">
+                  🛒 Shop Now
+                </Link>
+                <Link to="/offers" className="btn" style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(10px)' }}>
+                  🏷️ Today's Offers
+                </Link>
               </div>
-              <div className="hero__stats">
-                <div className="hero__stat"><strong>10,000+</strong><span>Happy Customers</span></div>
-                <div className="hero__stat"><strong>500+</strong><span>Fresh Products</span></div>
-                <div className="hero__stat"><strong>2 Hrs</strong><span>Delivery Time</span></div>
+              <div className="hero-stats">
+                <div className="hero-stat">
+                  <div className="hero-stat-value">500+</div>
+                  <div className="hero-stat-label">Fresh Products</div>
+                </div>
+                <div className="hero-stat">
+                  <div className="hero-stat-value">2hr</div>
+                  <div className="hero-stat-label">Express Delivery</div>
+                </div>
+                <div className="hero-stat">
+                  <div className="hero-stat-value">10k+</div>
+                  <div className="hero-stat-label">Happy Customers</div>
+                </div>
               </div>
-            </div>
-            <div className="hero__image-wrap">
-              <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600" alt="Fresh Groceries" className="hero__image" />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Features Bar ── */}
-      <div className="features-bar">
-        <div className="container">
-          <div className="features-bar__inner">
-            {[
-              { icon: "⚡", title: "Fast Delivery", sub: "Within 2 hours" },
-              { icon: "🌿", title: "Fresh Products", sub: "100% quality assured" },
-              { icon: "🔒", title: "Secure Payments", sub: "SSL encrypted checkout" },
-              { icon: "↩️", title: "Easy Returns", sub: "Hassle-free returns" },
-              { icon: "🎯", title: "Best Prices", sub: "Lowest price guarantee" },
-            ].map(f => (
-              <div key={f.title} className="feature-item">
-                <div className="feature-item__icon">{f.icon}</div>
-                <div><div className="feature-item__title">{f.title}</div><div className="feature-item__sub">{f.sub}</div></div>
+        {/* Stats Row */}
+        <section className="stats-row">
+          {[
+            { icon: '🚚', label: 'Free Delivery', value: 'Above ₹500', color: 'green' },
+            { icon: '🌿', label: '100% Fresh', value: 'Farm to Door', color: 'green' },
+            { icon: '💳', label: 'Secure Payment', value: 'Multiple Options', color: 'blue' },
+            { icon: '🔄', label: 'Easy Returns', value: '24hr Policy', color: 'orange' },
+          ].map((stat, i) => (
+            <div key={i} className="stat-card">
+              <div className={`stat-card-icon ${stat.color}`}>{stat.icon}</div>
+              <div>
+                <div className="stat-card-value">{stat.value}</div>
+                <div className="stat-card-label">{stat.label}</div>
               </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Categories */}
+        <section className="section">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Shop by Category</h2>
+              <p className="section-subtitle">Find exactly what you're looking for</p>
+            </div>
+          </div>
+          <div className="category-chips">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.label}
+                className="category-chip"
+                onClick={() =>
+                  navigate(cat.label === 'All' ? '/products' : `/products?category=${encodeURIComponent(cat.label)}`)
+                }
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* ── Search ── */}
-      <section className="search-section">
-        <div className="container">
-          <form className="search-bar" onSubmit={handleSearch}>
-            <input type="text" placeholder="Search for fruits, vegetables, milk, snacks..." value={search} onChange={e => setSearch(e.target.value)} aria-label="Search products" />
-            <select value={searchCat} onChange={e => setSearchCat(e.target.value)} aria-label="Filter by category">
-              <option value="All">All Categories</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <button type="submit" aria-label="Search">🔍</button>
-          </form>
-        </div>
-      </section>
-
-      {/* ── Categories ── */}
-      <section className="section" style={{ background: "var(--gray-50)" }}>
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Shop by <span>Category</span></h2>
-            <p className="section-subtitle">Browse through our wide range of grocery categories</p>
-          </div>
-          <div className="categories-grid">
-            {CATEGORIES.map(c => <CategoryCard key={c} name={c} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Offer Banners ── */}
-      <section className="section">
-        <div className="container">
-          <div className="offer-banners">
-            <div className="offer-banner" style={{ background: "linear-gradient(135deg,#e53935,#ef5350)" }}>
-              <div><h3>20% OFF</h3><p>On all Fresh Fruits</p><span className="tag">Shop Now →</span></div>
-            </div>
-            <div className="offer-banner" style={{ background: "linear-gradient(135deg,#1976d2,#42a5f5)" }}>
-              <div><h3>Buy 1 Get 1 Free</h3><p>On selected Dairy Products</p><span className="tag">Grab Deal →</span></div>
-            </div>
-            <div className="offer-banner" style={{ background: "linear-gradient(135deg,#388e3c,#66bb6a)" }}>
-              <div><h3>Free Delivery</h3><p>On orders above ₹499</p><span className="tag">Order Now →</span></div>
+        {/* Offer Banner */}
+        <div className="offer-banner">
+          <div>
+            <div className="offer-banner-title">🎉 Weekend Special Sale!</div>
+            <div className="offer-banner-sub">
+              Get up to 25% off on fresh fruits & vegetables. Limited time offer!
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── Popular Products ── */}
-      <section className="section" style={{ background: "var(--gray-50)" }}>
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Popular <span>Products</span></h2>
-            <p className="section-subtitle">Freshly curated picks our customers love</p>
+          <div className="offer-banner-tag">
+            <span className="offer-banner-code">FRESH25</span>
+            <div className="offer-banner-label">Use Code to Save</div>
           </div>
-          {loading ? <LoadingSpinner /> : (
-            featured.length > 0 ? (
-              <div className="products-grid">
-                {featured.slice(0, 8).map(p => <ProductCard key={p._id} product={p} />)}
-              </div>
-            ) : (
-              <div className="empty-state"><div className="empty-state__icon">🥦</div><p className="empty-state__sub">No products yet. Run the seed script to populate.</p></div>
-            )
-          )}
-          <div style={{ textAlign: "center", marginTop: "2rem" }}>
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate("/products")}>View All Products →</button>
-          </div>
+          <Link to="/offers" className="btn" style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', flexShrink: 0 }}>
+            Shop Offers →
+          </Link>
         </div>
-      </section>
 
-      {/* ── Best Sellers ── */}
-      {bestSellers.length > 0 && (
+        {/* Featured Products */}
         <section className="section">
-          <div className="container">
-            <div className="section-header">
-              <h2 className="section-title">🏆 Best <span>Sellers</span></h2>
-              <p className="section-subtitle">Our highest-rated, most-ordered products</p>
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">⭐ Featured Products</h2>
+              <p className="section-subtitle">Our top picks for you</p>
             </div>
+            <Link to="/products?isFeatured=true" className="see-all-link">See All →</Link>
+          </div>
+          {loading ? (
+            <div className="spinner-wrapper"><div className="spinner" /></div>
+          ) : (
             <div className="products-grid">
-              {bestSellers.slice(0, 8).map(p => <ProductCard key={p._id} product={p} />)}
+              {featuredProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
             </div>
-          </div>
+          )}
         </section>
-      )}
 
-      {/* ── Offers ── */}
-      {offers.length > 0 && (
-        <section className="section" style={{ background: "var(--gray-50)" }}>
-          <div className="container">
-            <div className="section-header">
-              <h2 className="section-title">🔥 Today's <span>Offers</span></h2>
-              <p className="section-subtitle">Limited-time deals you don't want to miss</p>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: "1.25rem" }}>
-              {offers.slice(0, 6).map(o => <OfferCard key={o._id} offer={o} />)}
-            </div>
-            <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
-              <button className="btn btn-accent btn-lg" onClick={() => navigate("/offers")}>View All Offers →</button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Reviews ── */}
-      {reviews.length > 0 && (
+        {/* Best Offers */}
         <section className="section">
-          <div className="container">
-            <div className="section-header">
-              <h2 className="section-title">What Customers <span>Say</span></h2>
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">🔥 Best Offers</h2>
+              <p className="section-subtitle">Limited-time deals you can't miss</p>
             </div>
-            <div className="reviews-grid">
-              {reviews.map(r => <ReviewCard key={r._id} review={r} />)}
+            <Link to="/offers" className="see-all-link">See All →</Link>
+          </div>
+          {loading ? (
+            <div className="spinner-wrapper"><div className="spinner" /></div>
+          ) : (
+            <div className="products-grid">
+              {offerProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Why Us */}
+        <section className="section">
+          <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e3a5f)', borderRadius: 'var(--radius-xl)', padding: '3rem 2.5rem', color: 'white', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.75rem', fontFamily: 'var(--font-heading)' }}>
+              Why Choose FreshCart?
+            </h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '2.5rem', fontSize: '1rem' }}>
+              We make grocery shopping effortless, fresh, and affordable
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              {[
+                { icon: '🌿', title: 'Farm Fresh', desc: 'Sourced directly from local farmers — no middlemen, maximum freshness.' },
+                { icon: '⚡', title: 'Express Delivery', desc: 'Get your groceries in 2 hours or schedule for a convenient time.' },
+                { icon: '💰', title: 'Best Prices', desc: 'Competitive prices and weekly deals to save more on every order.' },
+                { icon: '🔒', title: '100% Secure', desc: 'Safe checkout with encrypted payments. Your data is fully protected.' },
+              ].map((item, i) => (
+                <div key={i} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.1)', transition: 'transform 0.2s', cursor: 'default' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{item.icon}</div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>{item.title}</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.65 }}>{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
-      )}
-
-      {/* ── Why FreshCart ── */}
-      <section className="section" style={{ background: "linear-gradient(135deg,var(--primary-dark),var(--primary))", color: "#fff" }}>
-        <div className="container text-center">
-          <h2 style={{ fontFamily: "Outfit", fontSize: "2rem", fontWeight: 800, marginBottom: "0.5rem" }}>Why Choose <span style={{ color: "#a5d6a7" }}>FreshCart?</span></h2>
-          <p style={{ opacity: 0.85, marginBottom: "2.5rem" }}>We're committed to delivering the best grocery shopping experience</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "2rem" }}>
-            {[
-              { icon: "⚡", title: "2-Hour Delivery", desc: "From our store to your doorstep in record time" },
-              { icon: "🌿", title: "Farm Fresh", desc: "Directly sourced from trusted farms every morning" },
-              { icon: "💰", title: "Best Prices", desc: "Unbeatable prices with regular discounts & offers" },
-              { icon: "🤝", title: "Trusted Quality", desc: "Every product passes our strict quality checks" },
-            ].map(w => (
-              <div key={w.title}>
-                <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>{w.icon}</div>
-                <h3 style={{ fontWeight: 700, marginBottom: "0.4rem" }}>{w.title}</h3>
-                <p style={{ fontSize: "0.85rem", opacity: 0.8 }}>{w.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 };

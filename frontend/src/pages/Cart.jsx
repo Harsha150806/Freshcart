@@ -1,84 +1,164 @@
-﻿import { useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { Link } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const Cart = () => {
-  const navigate = useNavigate();
-  const { cart, cartCount, loading, DELIVERY_FEE, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cart, cartTotal, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { user } = useAuth();
 
-  const subtotal = cart.totalAmount || 0;
-  const discount = subtotal > 499 ? Math.round(subtotal * 0.05) : 0;
-  const total = subtotal - discount + DELIVERY_FEE;
+  const items = cart?.items || [];
+  const subtotal = cartTotal;
+  const deliveryFee = subtotal >= 500 ? 0 : 40;
+  const total = subtotal + deliveryFee;
 
-  if (loading) return <LoadingSpinner />;
-
-  return (
-    <div className="cart-page">
-      <div className="page-hero" style={{ padding: "2rem 0" }}>
+  if (!user) {
+    return (
+      <div className="page-wrapper">
         <div className="container">
-          <h1>Shopping Cart</h1>
-          <div className="breadcrumb"><a href="/">Home</a><span>/</span><span>Cart</span></div>
+          <div className="empty-state">
+            <div className="empty-state-icon">🔒</div>
+            <h3>Please login to view your cart</h3>
+            <p>You need to be logged in to access your shopping cart.</p>
+            <Link to="/login" className="btn btn-primary btn-lg">Login Now</Link>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="container" style={{ marginTop: "2rem" }}>
-        {cart.items?.length === 0 ? (
+  if (items.length === 0) {
+    return (
+      <div className="page-wrapper">
+        <div className="container">
           <div className="empty-state">
-            <div className="empty-state__icon">🛒</div>
-            <h3 className="empty-state__title">Your cart is empty</h3>
-            <p className="empty-state__sub">Add some fresh groceries to get started!</p>
-            <button className="btn btn-primary btn-lg" onClick={() => navigate("/products")}>🛒 Shop Now</button>
+            <div className="empty-state-icon">🛍️</div>
+            <h3>Your cart is empty</h3>
+            <p>Looks like you haven't added any items yet. Start shopping!</p>
+            <Link to="/products" className="btn btn-primary btn-lg">Shop Now</Link>
           </div>
-        ) : (
-          <div className="cart-grid">
-            {/* Items */}
-            <div>
-              <div className="card" style={{ overflow: "visible" }}>
-                <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--gray-200)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h2 style={{ fontSize: "1.05rem", fontWeight: 700 }}>Cart Items ({cartCount})</h2>
-                  <button className="btn btn-danger btn-sm" onClick={clearCart}>🗑 Clear All</button>
-                </div>
-                {cart.items?.map(item => {
-                  const p = item.product;
-                  if (!p) return null;
-                  return (
-                    <div key={item._id || p._id} className="cart-item">
-                      <img src={p.image || `https://via.placeholder.com/90x90/e8f5e9/2e7d32?text=${encodeURIComponent(p.name)}`}
-                        alt={p.name} className="cart-item__image"
-                        onError={e => { e.target.src = `https://via.placeholder.com/90x90/e8f5e9/2e7d32?text=${encodeURIComponent(p.name)}`; }} />
-                      <div className="cart-item__info">
-                        <div className="cart-item__name">{p.name}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--gray-500)", margin: "2px 0 6px" }}>{p.category} · per {p.unit}</div>
-                        <div className="cart-item__price">₹{p.price} <span style={{ fontSize: "0.8rem", color: "var(--gray-500)", fontWeight: 400 }}>× {item.quantity} = ₹{p.price * item.quantity}</span></div>
-                        <div className="qty-control" style={{ marginTop: "0.5rem" }}>
-                          <button className="qty-btn" onClick={() => updateQuantity(p._id, item.quantity - 1)}>−</button>
-                          <span className="qty-value">{item.quantity}</span>
-                          <button className="qty-btn" onClick={() => updateQuantity(p._id, item.quantity + 1)}>+</button>
-                          <button className="btn btn-sm" style={{ color: "var(--red)", background: "none", marginLeft: "0.5rem" }} onClick={() => removeFromCart(p._id)}>Remove</button>
-                        </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-wrapper">
+      <div className="container">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">🛍️ My Cart</h1>
+            <div className="breadcrumb">
+              <Link to="/">Home</Link> / <span>Cart</span>
+            </div>
+          </div>
+          <button className="btn btn-outline-danger btn-sm" onClick={clearCart}>
+            🗑️ Clear Cart
+          </button>
+        </div>
+
+        <div className="cart-layout">
+          {/* Cart Items */}
+          <div className="card">
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontWeight: 700 }}>Cart Items ({items.length})</h3>
+            </div>
+            {items.map((item) => {
+              const product = item.product;
+              if (!product) return null;
+              return (
+                <div key={item._id} className="cart-item">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="cart-item-img"
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/80?text=Item'; }}
+                  />
+                  <div className="cart-item-info">
+                    <Link to={`/products/${product._id}`} className="cart-item-name">{product.name}</Link>
+                    <div className="cart-item-price">₹{item.price} / {product.unit}</div>
+                    {product.stock < 10 && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: '0.2rem' }}>
+                        Only {product.stock} left!
                       </div>
+                    )}
+                  </div>
+                  <div className="cart-item-actions">
+                    <div className="qty-control">
+                      <button
+                        className="qty-btn"
+                        onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                      >−</button>
+                      <span className="qty-value">{item.quantity}</span>
+                      <button
+                        className="qty-btn"
+                        onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                        disabled={item.quantity >= product.stock}
+                      >+</button>
                     </div>
-                  );
-                })}
+                    <div className="cart-item-total">₹{(item.price * item.quantity).toFixed(0)}</div>
+                    <button
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '1.1rem', padding: '0.25rem', borderRadius: 'var(--radius-sm)', transition: 'var(--transition)' }}
+                      onClick={() => removeFromCart(item._id)}
+                      title="Remove item"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Order Summary */}
+          <div className="order-summary">
+            <div className="order-summary-title">Order Summary</div>
+
+            <div className="summary-row">
+              <span>Subtotal ({items.length} items)</span>
+              <span>₹{subtotal.toFixed(0)}</span>
+            </div>
+            <div className="summary-row">
+              <span>Delivery Fee</span>
+              <span className={deliveryFee === 0 ? 'free' : ''}>
+                {deliveryFee === 0 ? 'FREE 🎉' : `₹${deliveryFee}`}
+              </span>
+            </div>
+            {deliveryFee > 0 && (
+              <div style={{ background: '#fff7ed', borderRadius: 'var(--radius)', padding: '0.65rem', fontSize: '0.8rem', color: '#c2410c', border: '1px solid #fed7aa', margin: '0.5rem 0' }}>
+                🚚 Add ₹{(500 - subtotal).toFixed(0)} more to get <strong>FREE delivery!</strong>
+              </div>
+            )}
+            <div className="summary-row total">
+              <span>Total</span>
+              <span>₹{total.toFixed(0)}</span>
+            </div>
+
+            <div style={{ margin: '1rem 0' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg)', borderRadius: 'var(--radius)', padding: '0.75rem', border: '1px solid var(--border)' }}>
+                <input
+                  className="form-input"
+                  placeholder="Coupon code (FRESH25)"
+                  style={{ flex: 1, padding: '0.5rem' }}
+                />
+                <button className="btn btn-outline btn-sm">Apply</button>
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="cart-summary">
-              <div className="cart-summary__title">Order Summary</div>
-              <div className="cart-summary__row"><span>Subtotal</span><span>₹{subtotal}</span></div>
-              {discount > 0 && <div className="cart-summary__row" style={{ color: "var(--primary)" }}><span>Discount (5%)</span><span>−₹{discount}</span></div>}
-              <div className="cart-summary__row">
-                <span>Delivery Fee</span>
-                {DELIVERY_FEE === 0 ? <span style={{ color: "var(--primary)" }}>FREE</span> : <span>₹{DELIVERY_FEE}</span>}
-              </div>
-              {DELIVERY_FEE > 0 && <p style={{ fontSize: "0.78rem", color: "var(--primary)", marginBottom: "0.5rem" }}>🎉 Add ₹{499 - subtotal > 0 ? 499 - subtotal : 0} more for free delivery!</p>}
-              <div className="cart-summary__row total"><span>Total</span><span>₹{total}</span></div>
-              <button id="proceed-to-checkout" className="btn btn-primary btn-full btn-lg" style={{ marginTop: "1rem" }} onClick={() => navigate("/checkout")}>Proceed to Checkout →</button>
-              <button className="btn btn-ghost btn-full btn-sm" style={{ marginTop: "0.5rem" }} onClick={() => navigate("/products")}>Continue Shopping</button>
+            <Link to="/checkout" className="btn btn-primary btn-block btn-lg">
+              Proceed to Checkout →
+            </Link>
+            <Link to="/products" className="btn btn-ghost btn-block" style={{ marginTop: '0.5rem', justifyContent: 'center' }}>
+              ← Continue Shopping
+            </Link>
+
+            {/* Trust badges */}
+            <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-around' }}>
+              {['🔒 Secure', '🚚 Fast', '↩️ Easy Returns'].map((badge) => (
+                <span key={badge} style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>{badge}</span>
+              ))}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

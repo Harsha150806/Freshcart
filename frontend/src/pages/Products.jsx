@@ -1,112 +1,276 @@
-﻿import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { productAPI } from "../services/api";
-import ProductCard from "../components/ProductCard";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import api from '../api/axios';
+import ProductCard from '../components/ProductCard';
 
-const CATEGORIES = ["All","Fruits","Vegetables","Dairy","Bakery","Beverages","Snacks","Rice & Grains","Personal Care","Household"];
+const CATEGORIES = [
+  'All',
+  'Fruits & Vegetables',
+  'Dairy & Eggs',
+  'Meat & Seafood',
+  'Bakery',
+  'Beverages',
+  'Snacks',
+  'Pantry',
+  'Frozen Foods',
+  'Personal Care',
+  'Household',
+];
+
+const SORT_OPTIONS = [
+  { label: 'Newest First', value: 'createdAt-desc' },
+  { label: 'Price: Low to High', value: 'price-asc' },
+  { label: 'Price: High to Low', value: 'price-desc' },
+  { label: 'Top Rated', value: 'rating-desc' },
+  { label: 'Most Reviews', value: 'numReviews-desc' },
+  { label: 'Best Discount', value: 'discount-desc' },
+];
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [category, setCategory] = useState(searchParams.get("category") || "All");
-  const [sort, setSort] = useState("newest");
-  const [page, setPage] = useState(1);
-  const limit = 12;
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
 
-  const fetchProducts = async () => {
+  const [category, setCategory] = useState(searchParams.get('category') || 'All');
+  const [sort, setSort] = useState('createdAt-desc');
+  const [page, setPage] = useState(1);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [onlyOffers, setOnlyOffers] = useState(searchParams.get('isOffer') === 'true');
+  const [onlyFeatured, setOnlyFeatured] = useState(searchParams.get('isFeatured') === 'true');
+
+  const search = searchParams.get('search') || '';
+
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit, sort };
-      if (search) params.search = search;
-      if (category !== "All") params.category = category;
-      const res = await productAPI.getAll(params);
-      setProducts(res.data.products);
-      setTotal(res.data.total);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+      const [sortBy, order] = sort.split('-');
+      const params = new URLSearchParams({
+        page,
+        limit: 12,
+        sortBy,
+        order,
+        ...(category !== 'All' && { category }),
+        ...(search && { search }),
+        ...(minPrice && { minPrice }),
+        ...(maxPrice && { maxPrice }),
+        ...(onlyOffers && { isOffer: 'true' }),
+        ...(onlyFeatured && { isFeatured: 'true' }),
+      });
+      const { data } = await api.get(`/products?${params}`);
+      setProducts(data.products);
+      setTotal(data.total);
+      setPages(data.pages);
+    } catch (err) {
+      console.error('Failed to fetch products:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [category, sort, page, minPrice, maxPrice, onlyOffers, onlyFeatured, search]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Sync URL params to state
+  useEffect(() => {
+    const cat = searchParams.get('category');
+    if (cat) setCategory(cat);
+  }, [searchParams]);
+
+  const handleCategoryChange = (cat) => {
+    setCategory(cat);
+    setPage(1);
   };
 
-  useEffect(() => { fetchProducts(); }, [category, sort, page]);
-
-  const handleSearch = (e) => {
+  const handlePriceFilter = (e) => {
     e.preventDefault();
     setPage(1);
     fetchProducts();
   };
 
-  const handleCategoryChange = (cat) => { setCategory(cat); setPage(1); };
-
-  const pages = Math.ceil(total / limit);
+  const resetFilters = () => {
+    setCategory('All');
+    setSort('createdAt-desc');
+    setMinPrice('');
+    setMaxPrice('');
+    setOnlyOffers(false);
+    setOnlyFeatured(false);
+    setPage(1);
+    setSearchParams({});
+  };
 
   return (
-    <div>
-      <div className="page-hero">
-        <div className="container">
-          <h1>All Products</h1>
-          <p>Fresh groceries at the best prices</p>
-          <div className="breadcrumb"><a href="/">Home</a><span>/</span><span>Products</span></div>
-        </div>
-      </div>
-
-      <div className="section" style={{ paddingTop: "2rem", paddingBottom: "2rem" }}>
-        <div className="container">
-          {/* Search */}
-          <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-            <input className="form-control" style={{ flex: 1, minWidth: 240 }} type="text" placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} />
-            <button type="submit" className="btn btn-primary">🔍 Search</button>
-            {search && <button type="button" className="btn btn-ghost" onClick={() => { setSearch(""); setPage(1); fetchProducts(); }}>✕ Clear</button>}
-          </form>
-
-          {/* Category chips */}
-          <div className="filters-bar">
-            <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--gray-600)" }}>Category:</span>
-            {CATEGORIES.map(c => (
-              <button key={c} className={`filter-chip ${category === c ? "active" : ""}`} onClick={() => handleCategoryChange(c)}>{c}</button>
-            ))}
-            <select className="filter-select" value={sort} onChange={e => { setSort(e.target.value); setPage(1); }} style={{ marginLeft: "auto" }}>
-              <option value="newest">Newest First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="rating">Best Rated</option>
+    <div className="page-wrapper">
+      <div className="container">
+        {/* Header */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">
+              {search ? `Results for "${search}"` : 'All Products'}
+            </h1>
+            <div className="breadcrumb">
+              <Link to="/">Home</Link> / <span>Shop</span>
+              {category !== 'All' && <> / <span>{category}</span></>}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+              {total} products found
+            </span>
+            <select
+              className="form-select"
+              style={{ width: 'auto' }}
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
             </select>
           </div>
+        </div>
 
-          {/* Results info */}
-          <p style={{ color: "var(--gray-500)", fontSize: "0.88rem", marginBottom: "1.25rem" }}>
-            Showing {products.length} of {total} products
-            {category !== "All" && ` in "${category}"`}
-            {search && ` matching "${search}"`}
-          </p>
+        {/* Category chips */}
+        <div className="category-chips" style={{ marginBottom: '1.5rem' }}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              className={`category-chip ${category === cat ? 'active' : ''}`}
+              onClick={() => handleCategoryChange(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-          {loading ? <LoadingSpinner /> : (
-            products.length > 0 ? (
-              <div className="products-grid">
-                {products.map(p => <ProductCard key={p._id} product={p} />)}
+        <div className="products-layout">
+          {/* Filter Sidebar */}
+          <aside className="filter-sidebar">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>Filters</h3>
+              <button className="btn btn-ghost btn-sm" onClick={resetFilters}>Reset</button>
+            </div>
+
+            {/* Category filter */}
+            <div className="filter-section">
+              <p className="filter-section-title">Category</p>
+              {CATEGORIES.map((cat) => (
+                <label key={cat} className="filter-option">
+                  <input
+                    type="radio"
+                    name="category"
+                    checked={category === cat}
+                    onChange={() => handleCategoryChange(cat)}
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
+
+            {/* Price filter */}
+            <div className="filter-section">
+              <p className="filter-section-title">Price Range (₹)</p>
+              <form onSubmit={handlePriceFilter}>
+                <div className="price-range">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    className="form-input"
+                    style={{ padding: '0.5rem' }}
+                  />
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>–</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    className="form-input"
+                    style={{ padding: '0.5rem' }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary btn-sm btn-block" style={{ marginTop: '0.75rem' }}>
+                  Apply
+                </button>
+              </form>
+            </div>
+
+            {/* Special filters */}
+            <div className="filter-section">
+              <p className="filter-section-title">Special</p>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={onlyOffers}
+                  onChange={(e) => { setOnlyOffers(e.target.checked); setPage(1); }}
+                />
+                🔥 On Sale / Offers
+              </label>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={onlyFeatured}
+                  onChange={(e) => { setOnlyFeatured(e.target.checked); setPage(1); }}
+                />
+                ⭐ Featured Only
+              </label>
+            </div>
+          </aside>
+
+          {/* Products Grid */}
+          <div>
+            {loading ? (
+              <div className="spinner-wrapper"><div className="spinner" /></div>
+            ) : products.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">🥦</div>
+                <h3>No products found</h3>
+                <p>Try adjusting your search or filters</p>
+                <button className="btn btn-primary" onClick={resetFilters}>Reset Filters</button>
               </div>
             ) : (
-              <div className="empty-state">
-                <div className="empty-state__icon">🔍</div>
-                <h3 className="empty-state__title">No products found</h3>
-                <p className="empty-state__sub">Try different search terms or category</p>
-                <button className="btn btn-primary" onClick={() => { setSearch(""); setCategory("All"); setPage(1); }}>Clear Filters</button>
-              </div>
-            )
-          )}
+              <>
+                <div className="products-grid">
+                  {products.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))}
+                </div>
 
-          {/* Pagination */}
-          {pages > 1 && (
-            <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginTop: "2rem" }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>← Prev</button>
-              {Array.from({ length: pages }, (_, i) => i + 1).map(p => (
-                <button key={p} className={`btn btn-sm ${p === page ? "btn-primary" : "btn-ghost"}`} onClick={() => setPage(p)}>{p}</button>
-              ))}
-              <button className="btn btn-ghost btn-sm" onClick={() => setPage(p => p + 1)} disabled={page === pages}>Next →</button>
-            </div>
-          )}
+                {/* Pagination */}
+                {pages > 1 && (
+                  <div className="pagination">
+                    <button
+                      className="page-btn"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      ←
+                    </button>
+                    {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        className={`page-btn ${p === page ? 'active' : ''}`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      className="page-btn"
+                      onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                      disabled={page === pages}
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
