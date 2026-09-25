@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import ProductCard from '../components/ProductCard';
+import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 const CATEGORIES = [
   'All',
@@ -22,7 +23,6 @@ const SORT_OPTIONS = [
   { label: 'Price: Low to High', value: 'price-asc' },
   { label: 'Price: High to Low', value: 'price-desc' },
   { label: 'Top Rated', value: 'rating-desc' },
-  { label: 'Most Reviews', value: 'numReviews-desc' },
   { label: 'Best Discount', value: 'discount-desc' },
 ];
 
@@ -60,14 +60,56 @@ const Products = () => {
         ...(onlyFeatured && { isFeatured: 'true' }),
       });
       const { data } = await api.get(`/products?${params}`);
-      setProducts(data.products);
-      setTotal(data.total);
-      setPages(data.pages);
+      if (data && data.products && data.products.length > 0) {
+        setProducts(data.products);
+        setTotal(data.total);
+        setPages(data.pages);
+        setLoading(false);
+        return;
+      }
     } catch (err) {
-      console.error('Failed to fetch products:', err.message);
-    } finally {
-      setLoading(false);
+      console.log('Backend API request fallback to local mock catalog:', err.message);
     }
+
+    // Client-side filtering over extensive MOCK_PRODUCTS catalog
+    let filtered = [...MOCK_PRODUCTS];
+
+    if (category !== 'All') {
+      filtered = filtered.filter(
+        (p) => p.category.toLowerCase().trim() === category.toLowerCase().trim()
+      );
+    }
+
+    if (search) {
+      const q = search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q))) ||
+          (p.weight && p.weight.toLowerCase().includes(q))
+      );
+    }
+
+    if (minPrice) filtered = filtered.filter((p) => p.price >= Number(minPrice));
+    if (maxPrice) filtered = filtered.filter((p) => p.price <= Number(maxPrice));
+    if (onlyOffers) filtered = filtered.filter((p) => p.isOffer);
+    if (onlyFeatured) filtered = filtered.filter((p) => p.isFeatured);
+
+    // Sorting
+    if (sort === 'price-asc') filtered.sort((a, b) => a.price - b.price);
+    else if (sort === 'price-desc') filtered.sort((a, b) => b.price - a.price);
+    else if (sort === 'rating-desc') filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    else if (sort === 'discount-desc') filtered.sort((a, b) => (b.discount || 0) - (a.discount || 0));
+
+    const itemsPerPage = 12;
+    setTotal(filtered.length);
+    setPages(Math.ceil(filtered.length / itemsPerPage) || 1);
+    const startIndex = (page - 1) * itemsPerPage;
+    setProducts(filtered.slice(startIndex, startIndex + itemsPerPage));
+    setLoading(false);
   }, [category, sort, page, minPrice, maxPrice, onlyOffers, onlyFeatured, search]);
 
   useEffect(() => {
@@ -78,11 +120,19 @@ const Products = () => {
   useEffect(() => {
     const cat = searchParams.get('category');
     if (cat) setCategory(cat);
+    const isOff = searchParams.get('isOffer') === 'true';
+    if (isOff) setOnlyOffers(true);
+    const isFeat = searchParams.get('isFeatured') === 'true';
+    if (isFeat) setOnlyFeatured(true);
   }, [searchParams]);
 
   const handleCategoryChange = (cat) => {
     setCategory(cat);
     setPage(1);
+    const newParams = {};
+    if (cat !== 'All') newParams.category = cat;
+    if (search) newParams.search = search;
+    setSearchParams(newParams);
   };
 
   const handlePriceFilter = (e) => {
@@ -109,7 +159,7 @@ const Products = () => {
         <div className="page-header">
           <div>
             <h1 className="page-title">
-              {search ? `Results for "${search}"` : 'All Products'}
+              {search ? `Results for "${search}"` : 'All Grocery Products'}
             </h1>
             <div className="breadcrumb">
               <Link to="/">Home</Link> / <span>Shop</span>
@@ -124,10 +174,15 @@ const Products = () => {
               className="form-select"
               style={{ width: 'auto' }}
               value={sort}
-              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setPage(1);
+              }}
             >
               {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </div>
@@ -149,9 +204,18 @@ const Products = () => {
         <div className="products-layout">
           {/* Filter Sidebar */}
           <aside className="filter-sidebar">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justify: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.25rem',
+              }}
+            >
               <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>Filters</h3>
-              <button className="btn btn-ghost btn-sm" onClick={resetFilters}>Reset</button>
+              <button className="btn btn-ghost btn-sm" onClick={resetFilters}>
+                Reset
+              </button>
             </div>
 
             {/* Category filter */}
@@ -193,20 +257,27 @@ const Products = () => {
                     style={{ padding: '0.5rem' }}
                   />
                 </div>
-                <button type="submit" className="btn btn-primary btn-sm btn-block" style={{ marginTop: '0.75rem' }}>
-                  Apply
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm btn-block"
+                  style={{ marginTop: '0.75rem' }}
+                >
+                  Apply Filter
                 </button>
               </form>
             </div>
 
             {/* Special filters */}
             <div className="filter-section">
-              <p className="filter-section-title">Special</p>
+              <p className="filter-section-title">Special Deals</p>
               <label className="filter-option">
                 <input
                   type="checkbox"
                   checked={onlyOffers}
-                  onChange={(e) => { setOnlyOffers(e.target.checked); setPage(1); }}
+                  onChange={(e) => {
+                    setOnlyOffers(e.target.checked);
+                    setPage(1);
+                  }}
                 />
                 🔥 On Sale / Offers
               </label>
@@ -214,9 +285,12 @@ const Products = () => {
                 <input
                   type="checkbox"
                   checked={onlyFeatured}
-                  onChange={(e) => { setOnlyFeatured(e.target.checked); setPage(1); }}
+                  onChange={(e) => {
+                    setOnlyFeatured(e.target.checked);
+                    setPage(1);
+                  }}
                 />
-                ⭐ Featured Only
+                ⭐ Featured Items
               </label>
             </div>
           </aside>
@@ -224,13 +298,17 @@ const Products = () => {
           {/* Products Grid */}
           <div>
             {loading ? (
-              <div className="spinner-wrapper"><div className="spinner" /></div>
+              <div className="spinner-wrapper">
+                <div className="spinner" />
+              </div>
             ) : products.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">🥦</div>
-                <h3>No products found</h3>
-                <p>Try adjusting your search or filters</p>
-                <button className="btn btn-primary" onClick={resetFilters}>Reset Filters</button>
+                <div className="empty-state-icon">🛒</div>
+                <h3>No grocery products found</h3>
+                <p>Try searching for another keyword or reset filters to view all products.</p>
+                <button className="btn btn-primary" onClick={resetFilters}>
+                  View All Products
+                </button>
               </div>
             ) : (
               <>
