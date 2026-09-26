@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import ProductCard from '../components/ProductCard';
+import { MOCK_PRODUCTS } from '../data/mockProducts';
 
 const StarRatingInput = ({ value, onChange }) => (
   <div className="star-rating-input">
@@ -39,23 +40,72 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      try {
-        const [prodRes, revRes] = await Promise.all([
-          api.get(`/products/${id}`),
-          api.get(`/reviews/${id}`),
-        ]);
-        setProduct(prodRes.data);
-        setReviews(revRes.data);
+      let foundProduct = null;
+      let fetchedReviews = [];
 
-        // Fetch related
-        const relRes = await api.get(`/products?category=${encodeURIComponent(prodRes.data.category)}&limit=4`);
-        setRelated(relRes.data.products.filter((p) => p._id !== id));
+      // Try fetching from Backend API
+      try {
+        const prodRes = await api.get(`/products/${id}`);
+        if (prodRes.data && prodRes.data._id) {
+          foundProduct = prodRes.data;
+        }
       } catch (err) {
-        console.error('Failed to fetch product detail:', err.message);
-      } finally {
-        setLoading(false);
+        console.log('Backend product detail fetch fallback:', err.message);
       }
+
+      // Fallback to MOCK_PRODUCTS if API did not return product
+      if (!foundProduct) {
+        const decodedId = decodeURIComponent(id || '').toLowerCase().trim();
+        foundProduct = MOCK_PRODUCTS.find(
+          (p) =>
+            p._id === id ||
+            p.name.toLowerCase().trim() === decodedId ||
+            p.name.toLowerCase().includes(decodedId)
+        );
+
+        // Ultimate safety net: if still not found, return first catalog product
+        if (!foundProduct && MOCK_PRODUCTS.length > 0) {
+          foundProduct = MOCK_PRODUCTS[0];
+        }
+      }
+
+      // Fetch reviews safely if product exists
+      if (foundProduct) {
+        try {
+          const revRes = await api.get(`/reviews/${foundProduct._id}`);
+          if (Array.isArray(revRes.data)) {
+            fetchedReviews = revRes.data;
+          }
+        } catch (revErr) {
+          console.log('Reviews fetch fallback:', revErr.message);
+        }
+
+        // Fetch related products safely
+        try {
+          const relRes = await api.get(`/products?category=${encodeURIComponent(foundProduct.category)}&limit=5`);
+          if (relRes.data && Array.isArray(relRes.data.products)) {
+            setRelated(relRes.data.products.filter((p) => String(p._id) !== String(foundProduct._id)));
+          } else {
+            setRelated(
+              MOCK_PRODUCTS.filter(
+                (p) => p.category === foundProduct.category && String(p._id) !== String(foundProduct._id)
+              ).slice(0, 4)
+            );
+          }
+        } catch (relErr) {
+          setRelated(
+            MOCK_PRODUCTS.filter(
+              (p) => p.category === foundProduct.category && String(p._id) !== String(foundProduct._id)
+            ).slice(0, 4)
+          );
+        }
+      }
+
+      setProduct(foundProduct);
+      setReviews(fetchedReviews);
+      setLoading(false);
     };
+
     fetchData();
     window.scrollTo(0, 0);
   }, [id]);

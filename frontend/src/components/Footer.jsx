@@ -37,11 +37,11 @@ const Footer = () => {
           <div>
             <p className="footer-heading">Categories</p>
             <div className="footer-links">
-              <Link to="/products?category=Fruits & Vegetables">🥦 Fruits & Veggies</Link>
-              <Link to="/products?category=Dairy & Eggs">🥛 Dairy & Eggs</Link>
-              <Link to="/products?category=Bakery">🍞 Bakery</Link>
-              <Link to="/products?category=Meat & Seafood">🥩 Meat & Seafood</Link>
-              <Link to="/products?category=Beverages">🧃 Beverages</Link>
+              <Link to="/products?category=Fruits %26 Vegetables">🥦 Fruits & Veggies</Link>
+              <Link to="/products?category=Rice%2C Atta %26 Grains">🌾 Rice, Atta & Grains</Link>
+              <Link to="/products?category=Dal %26 Pulses">🫘 Dal & Pulses</Link>
+              <Link to="/products?category=Dairy%2C Bread %26 Eggs">🥛 Dairy, Bread & Eggs</Link>
+              <Link to="/products?category=Snacks %26 Biscuits">🍪 Snacks & Biscuits</Link>
             </div>
           </div>
 

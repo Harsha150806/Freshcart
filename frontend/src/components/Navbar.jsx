@@ -5,15 +5,19 @@ import { useCart } from '../context/CartContext';
 
 const CATEGORIES = [
   'Fruits & Vegetables',
-  'Dairy & Eggs',
-  'Meat & Seafood',
-  'Bakery',
+  'Rice, Atta & Grains',
+  'Dal & Pulses',
+  'Oil & Ghee',
+  'Masala & Spices',
+  'Dairy, Bread & Eggs',
+  'Snacks & Biscuits',
   'Beverages',
-  'Snacks',
-  'Pantry',
-  'Frozen Foods',
+  'Instant & Packaged Food',
+  'Chocolates & Sweets',
+  'Cleaning & Household',
   'Personal Care',
-  'Household',
+  'Baby Care',
+  'Pet Care',
 ];
 
 const Navbar = () => {

@@ -1,18 +1,32 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const cartItemSchema = new mongoose.Schema({
-  product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-  quantity: { type: Number, required: true, min: 1 },
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+  },
+  quantity: { type: Number, required: true, min: 1, default: 1 },
   price: { type: Number, required: true },
 });
 
 const cartSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      unique: true,
+    },
     items: [cartItemSchema],
-    totalAmount: { type: Number, default: 0 },
+    couponCode: { type: String, default: '' },
+    discountAmount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Cart", cartSchema);
+cartSchema.virtual('totalAmount').get(function () {
+  return this.items.reduce((total, item) => total + item.price * item.quantity, 0);
+});
+
+module.exports = mongoose.model('Cart', cartSchema);

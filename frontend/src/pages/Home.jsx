@@ -7,15 +7,19 @@ import { MOCK_PRODUCTS } from '../data/mockProducts';
 const CATEGORIES = [
   { label: 'All', icon: '🛒' },
   { label: 'Fruits & Vegetables', icon: '🥦' },
-  { label: 'Dairy & Eggs', icon: '🥛' },
-  { label: 'Meat & Seafood', icon: '🥩' },
-  { label: 'Bakery', icon: '🍞' },
-  { label: 'Beverages', icon: '🧃' },
-  { label: 'Snacks', icon: '🍿' },
-  { label: 'Pantry', icon: '🫙' },
-  { label: 'Frozen Foods', icon: '🧊' },
+  { label: 'Rice, Atta & Grains', icon: '🌾' },
+  { label: 'Dal & Pulses', icon: '🫘' },
+  { label: 'Oil & Ghee', icon: '🪔' },
+  { label: 'Masala & Spices', icon: '🌶️' },
+  { label: 'Dairy, Bread & Eggs', icon: '🥛' },
+  { label: 'Snacks & Biscuits', icon: '🍪' },
+  { label: 'Beverages', icon: '🥤' },
+  { label: 'Instant & Packaged Food', icon: '🍜' },
+  { label: 'Chocolates & Sweets', icon: '🍫' },
+  { label: 'Cleaning & Household', icon: '🧹' },
   { label: 'Personal Care', icon: '🧴' },
-  { label: 'Household', icon: '🏠' },
+  { label: 'Baby Care', icon: '👶' },
+  { label: 'Pet Care', icon: '🐾' },
 ];
 
 const Home = () => {

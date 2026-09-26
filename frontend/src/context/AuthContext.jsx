@@ -9,16 +9,33 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('freshcart_user');
-    const token = localStorage.getItem('freshcart_token');
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const loadStoredUser = () => {
+      try {
+        const storedUser = localStorage.getItem('freshcart_user');
+        const token = localStorage.getItem('freshcart_token');
+        if (storedUser && token) {
+          const parsed = JSON.parse(storedUser);
+          if (parsed && typeof parsed === 'object') {
+            setUser(parsed);
+          } else {
+            localStorage.removeItem('freshcart_user');
+            localStorage.removeItem('freshcart_token');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse stored user:', err);
+        localStorage.removeItem('freshcart_user');
+        localStorage.removeItem('freshcart_token');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStoredUser();
   }, []);
 
   const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const cleanEmail = email.trim().toLowerCase();
+    const { data } = await api.post('/auth/login', { email: cleanEmail, password });
     localStorage.setItem('freshcart_token', data.token);
     localStorage.setItem('freshcart_user', JSON.stringify(data));
     setUser(data);
@@ -26,7 +43,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password, phone) => {
-    const { data } = await api.post('/auth/register', { name, email, password, phone });
+    const cleanEmail = email.trim().toLowerCase();
+    const { data } = await api.post('/auth/register', {
+      name: name.trim(),
+      email: cleanEmail,
+      password,
+      phone: phone ? phone.trim() : '',
+    });
     localStorage.setItem('freshcart_token', data.token);
     localStorage.setItem('freshcart_user', JSON.stringify(data));
     setUser(data);
@@ -41,8 +64,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUser) => {
+    if (!updatedUser) return;
     localStorage.setItem('freshcart_user', JSON.stringify(updatedUser));
-    localStorage.setItem('freshcart_token', updatedUser.token);
+    if (updatedUser.token) {
+      localStorage.setItem('freshcart_token', updatedUser.token);
+    }
     setUser(updatedUser);
   };
 
